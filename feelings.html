@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Feelings — KennyIzzy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/kennyizzy-badge.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@400;500;600&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a href="index.html"><img class="logo-mark" src="assets/kennyizzy-logo.png" alt="KennyIzzy"></a>
+    <nav>
+      <div class="nav-links">
+        <a href="fiction.html">Fiction</a>
+        <a href="art.html">Art</a>
+        <a href="feelings.html" class="active">My Feelings</a>
+        <a href="about.html">About</a>
+      </div>
+      <a href="#" class="btn btn-primary">Say Hi</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-hero wrap">
+  <p class="hero-eyebrow">Honest, unfiltered check-ins</p>
+  <h1>My <span>Feelings.</span></h1>
+  <p class="lede">The journal entries behind the stories — no polish, no performance, just whatever's true that week.</p>
+  <div class="chip-row">
+    <a href="#" class="chip active" data-filter="all">All</a>
+    <a href="#" class="chip" data-filter="Gentle">Gentle</a>
+    <a href="#" class="chip" data-filter="Grateful">Grateful</a>
+    <a href="#" class="chip" data-filter="Heavy">Heavy</a>
+    <a href="#" class="chip" data-filter="Hopeful">Hopeful</a>
+  </div>
+</section>
+
+<section class="wrap" id="feelings-root" style="padding:36px 0 10px;">
+  <div style="text-align:center; padding:60px 0; color:#7a6a60;">Loading entries…</div>
+</section>
+
+<section class="band">
+  <svg class="float f1" viewBox="0 0 24 24" fill="none" style="top:20px; left:8%; width:26px;"><path d="M12 21s-7.5-4.6-10-9.3C.5 8.1 2.6 4 6.4 4c2 0 3.6 1.1 4.4 2.6C11.6 5.1 13.2 4 15.2 4 19 4 21 8.1 19.4 11.7 17 16.4 12 21 12 21z" fill="var(--gold)"/></svg>
+  <div class="wrap band-inner">
+    <div>
+      <h3>Don't miss a chapter.</h3>
+      <p>One warm email whenever there's a new story, sketch, or feelings post. No spam, just cozy.</p>
+      <div class="band-form">
+        <input type="email" placeholder="your@email.com" aria-label="Email address">
+        <button>Subscribe</button>
+      </div>
+    </div>
+    <div class="stamp-wrap">
+      <img class="stamp" src="assets/kennyizzy-badge.png" alt="KennyIzzy badge mark">
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img class="footer-logo" src="assets/kennyizzy-logo.png" alt="KennyIzzy" style="filter:grayscale(1) opacity(.55); margin-left:auto; margin-right:auto;">
+    <div class="footer-links">
+      <a href="fiction.html">Fiction</a>
+      <a href="art.html">Art</a>
+      <a href="feelings.html">My Feelings</a>
+      <a href="about.html">About</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 KennyIzzy &middot; Cozy never looked this bright.</div>
+  </div>
+</footer>
+
+<script src="js/site-data.js"></script>
+<script>
+let ALL_ENTRIES = [];
+let ALL_SETTINGS = {};
+
+function entryHTML(e) {
+  const slug = KZ.slugify(e.title);
+  return `
+    <a href="post.html?type=feelings&id=${encodeURIComponent(slug)}" class="journal-entry reveal">
+      <div class="journal-meta-row">
+        <span class="mood-pill">${e.mood || ''}</span>
+        <span class="journal-date">${KZ.formatDate(e.date)}</span>
+      </div>
+      <h3 class="journal-title">${e.title}</h3>
+      <p class="journal-excerpt">${e.excerpt || ''}</p>
+      <div class="journal-footer"><span>${e.readTime || ''}</span><span class="read-link">Read &rarr;</span></div>
+    </a>`;
+}
+
+function render(entries, filter) {
+  const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const filtered = filter === 'all' ? sorted : sorted.filter(e => e.mood === filter);
+  const root = document.getElementById('feelings-root');
+
+  let html = '';
+  if (filter === 'all' && ALL_SETTINGS.currentMoodTitle) {
+    html += `
+      <div class="mood-banner reveal">
+        <div>
+          <span class="mb-tag">Today's mood</span>
+          <h3>${ALL_SETTINGS.currentMoodTitle}</h3>
+          <p>${ALL_SETTINGS.currentMoodBlurb || ''}</p>
+        </div>
+        ${sorted[0] ? `<a href="post.html?type=feelings&id=${encodeURIComponent(KZ.slugify(sorted[0].title))}" class="btn btn-outline" style="border-color:#fff; color:#fff;">Read latest entry</a>` : ''}
+      </div>`;
+  }
+
+  if (filtered.length === 0) {
+    html += `<div style="text-align:center; padding:40px 0; color:#7a6a60;">No entries in this mood yet.</div>`;
+  } else {
+    html += `<div class="journal-list">${filtered.map(entryHTML).join('')}</div>`;
+  }
+
+  root.innerHTML = html;
+}
+
+async function init() {
+  try {
+    const [feelingsData, settingsData] = await Promise.all([
+      KZ.fetchJSON('content/feelings.json'),
+      KZ.fetchJSON('content/settings.json')
+    ]);
+    ALL_ENTRIES = feelingsData.entries || [];
+    ALL_SETTINGS = settingsData || {};
+    render(ALL_ENTRIES, 'all');
+  } catch (e) {
+    document.getElementById('feelings-root').innerHTML = '<div style="text-align:center; padding:60px 0; color:#7a6a60;">Couldn\'t load entries right now.</div>';
+    console.error(e);
+  }
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      render(ALL_ENTRIES, chip.dataset.filter);
+    });
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
